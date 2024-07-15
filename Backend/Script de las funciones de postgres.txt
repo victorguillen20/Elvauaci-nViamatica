@@ -1,3 +1,134 @@
+create or replace function registrarPersona(nombres varchar(60), apellidos varchar(60),
+ identificacion varchar(10), fechanacimiento date) returns integer as
+$$
+declare
+	new_id integer;
+begin
+	begin
+		insert into persona (nombre, apellido, identificacion, fechanacimiento) 
+		values ($1, $2, $3, $4) RETURNING idpersona into new_id;
+		return new_id;
+	exception
+		when others then
+			return null;
+	end;
+end;
+$$ language plpgsql
+
+
+create or replace function actualizarPersona( nombreactualizar varchar(60), apellidoactualizar varchar(60), identificacionactualizar varchar(10),
+	fechanacimientoactualizar date, idpersonaactualizar integer) returns boolean as
+$$
+declare 
+	ban boolean; 
+begin	
+	begin		
+		update persona 
+			set nombre = coalesce($1, nombre),  
+			apellido = coalesce($2, apellido), 
+			identificacion = coalesce($3, identificacion), 
+			fechanacimiento = coalesce($4, fechanacimiento)
+			where idpersona = $5;
+		ban = true;
+	exception when others then
+		ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+create or replace function eliminarPersona(idpersonap integer) returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		delete from persona where idpersona = idpersonap;
+		ban := true;
+	exception
+		when others then
+			ban := false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+----usuarios---------------------------------
+-----------------------------
+create or replace function registrarUsuarioEstandar(
+    usuarioregistrar varchar(50), 
+    passwordregistrar varchar(60),
+    mailregistrar varchar(120),
+    nombres varchar(60), 
+    apellidos varchar(60),
+    identificacion varchar(10), 
+    fechanacimiento date
+) returns boolean as
+$$
+declare
+    idpersonavar integer;
+    idusuariovar integer;
+    ban boolean := false; -- Inicializamos en false por defecto
+begin
+    -- Registrar la persona y obtener su ID
+    idpersonavar := registrarPersona(nombres, apellidos, identificacion, fechanacimiento); 
+    
+    IF idpersonavar IS NOT NULL THEN
+        -- Insertar el usuario y capturar el ID generado
+        BEGIN
+            INSERT INTO usuarios (idpersona, username, password, mail, sessionactive, status) 
+            VALUES (idpersonavar, usuarioregistrar, passwordregistrar, mailregistrar, 0, 'activado')
+            RETURNING idusuario INTO idusuariovar; -- Capturamos el idusuario generado
+            
+            
+            perform asignarrol(2, idusuariovar);             
+            ban := true;  -- Todo fue exitoso, cambiamos ban a true
+        EXCEPTION
+            WHEN others THEN
+                ban := false;  -- En caso de error, cambiamos ban a false
+        END;
+    ELSE
+        ban := false;  -- Si idpersonavar es NULL, cambiamos ban a false
+    END IF;  
+    
+    return ban;  -- Retornamos el valor de ban
+end;
+$$ language plpgsql;
+
+select eliminarPersona(9)
+select registrarPersona('Víctor Gabriel', 'Guillén Chevez', '1205625146', '1998/02/20')
+select registrarUsuarioEstandar('vgguillen', '1313', 'vgguillen@gmial.com', 'Víctor Gabriel', 'Guillén Chevez', '1205625161', '1998/02/20')
+select*from persona
+select*from usuarios
+
+create or replace function obtenerDatosPersonaYUsuarioPorUsername(
+    usuario_username VARCHAR(50)
+) returns table (    
+    Nombre VARCHAR(60),
+    Apellido VARCHAR(60),
+    Identificacion VARCHAR(10),
+    FechaNacimiento DATE,
+    UserName VARCHAR(50),
+    Mail VARCHAR(120)
+) as
+$$
+begin
+    return query
+    select 
+           p.Nombre AS nombre,
+           p.Apellido AS apellido,
+           p.Identificacion AS identificacion,
+           p.FechaNacimiento AS fechanacimiento,
+           u.UserName AS username,
+           u.Mail AS Mail
+    from Persona p
+    inner join Usuarios u ON p.idPersona = u.idPersona
+    where u.UserName = usuario_username;
+end;
+$$ language plpgsql;
+
 create or replace function obtenertodoslosUsuarios( ) 
 returns table (
 	idUsuario integer,
@@ -27,3 +158,504 @@ end;
 $$ language plpgsql;
 
 select*from obtenertodoslosUsuarios()
+select*from obtenerDatosPersonaYUsuarioPorUsername('vgguillen')
+
+create or replace function actualizarUsuarios( usuarioregistrar varchar(50), passwordregistrar varchar(60),
+ mailregistrar varchar(120), sessionactregistrar char(1), idpersonaregistrar integer, statusregistrar char(20),
+	nombres varchar(60), apellidos varchar(60),
+ identificacion varchar(10), fechanacimiento date) returns boolean as
+$$
+declare 
+	ban boolean; 
+	idpersona_actualizar INTEGER;
+begin	
+	begin
+		select idpersona into idpersona_actualizar
+		from usuarios
+		where username = $1;
+
+		perform actualizarPersona($7, $8, $9, $10, $5);
+
+		update usuarios 
+			set username = coalesce($1, username), 
+			password = coalesce($2, password),
+			mail = coalesce($3, mail), 
+			sessionactive = coalesce($4, sessionactive), 
+			status = coalesce($6, status) 
+			where pass = $2;
+		ban = true;
+	exception when others then
+		ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+create or replace function eliminarUsuario(idusuario integer)   returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		delete from usuarios where idusuario = $1;
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+------- usuario existe -----------
+
+create or replace function userExist(usernameparametro varchar(50)) returns boolean as
+$$
+declare
+	existe boolean;	
+begin
+	select exists (
+        select 1
+        from Usuarios
+        where username = usernameparametro
+    ) into existe;
+
+    return existe;
+end;
+$$ language plpgsql
+
+select userExist('vgguillen')
+
+-------------
+-------------buscar mail-----------------
+create or replace function existeMailEnUsuarios(
+    mailusuario varchar(120)
+) returns boolean as
+$$
+declare
+    existe boolean;
+begin
+    select exists (
+        select 1
+        from Usuarios
+        where mail = mailusuario
+    ) into existe;
+
+    return existe;
+end;
+$$ language plpgsql;
+
+select existemailenusuarios('vgguillen@gmial.com')
+select*from usuarios
+
+--------------Nueva funcion para recuperar la password del usuario--------------
+
+create or replace function tomarPasswordHashed(usern varchar(50))  returns varchar as
+$$
+declare
+	passw varchar(60);
+begin
+	perform password from usuarios where username = $1;
+	if not found then 
+		passw = 'false';
+	else
+		passw := (select password from usuarios where username = $1);
+	end if;	
+	return passw;
+end;
+$$ language plpgsql;
+
+select tomarPasswordHashed('vgguillen')
+
+--------------Nueva funcion para recuperar la password del usuario por el mail--------------
+
+create or replace function tomarPasswordHashedporelMail(mailparametro varchar(120))  returns varchar as
+$$
+declare
+	passw varchar(60);
+begin
+	select password into passw from usuarios where mail = mailparametro limit 1;
+	if not found then 
+		passw := 'false';		
+	end if;	
+	return passw;
+end;
+$$ language plpgsql;
+
+select tomarPasswordHashedporelMail('vgguillen@gmial.com')
+select * from usuarios
+---------recuperar id del usuario por el username------------
+create or replace function obtenerIdUsuarioPorUsername(usuario varchar(50)) 
+returns integer as 
+$$
+declare	
+	id_usuario integer;
+begin
+	select idusuario into id_usuario
+	from usuarios
+	where username = $1;
+
+	return id_usuario;
+end;
+$$ language plpgsql;
+---------recuperar id del usuario por el mail------------
+create or replace function obtenerIdUsuarioPormail(mailparametro varchar(120)) 
+returns integer as 
+$$
+declare	
+	id_usuario integer;
+begin
+	select idusuario into id_usuario
+	from usuarios
+	where mail = mailparametro;
+
+	return id_usuario;
+end;
+$$ language plpgsql;
+
+select obteneridusuariopormail('polivarese@mail.com')
+
+select*from usuarios
+--------------agregar inicio de sesion-----------
+create or replace function registrarentrada(fechaingresoparametro timestamp,
+    idusuarioparametro integer) returns boolean as
+$$
+declare 
+	ban boolean;
+begin
+	begin
+		insert into sessions ( fechaingreso, idusuario) 
+		values (fechaingresoparametro, idusuarioparametro);
+		ban := true;
+	exception
+		when others then
+		ban := false;
+	end;
+	return ban;
+end;
+$$ language plpgsql;
+select*from sessions
+--------------agregar cierre de sesion----------
+create or replace function registrarsalida(fechasalidaparametro timestamp,
+    idusuarioparametro integer) returns boolean as
+$$
+declare 
+	ban boolean;
+begin
+	begin
+		insert into sessions ( fechasalida, idusuario)
+		values (fechasalidaparametro, idusuarioparametro);
+		ban := true;
+	exception
+		when others then
+		ban := false;
+	end;
+	return ban;
+end;
+$$ language plpgsql;
+
+-----------------intentos de iniciar sesion----------
+
+create or replace function actualizarIntentosSesion(idusuario_parametro integer) returns boolean as
+$$
+declare
+    updated_rows integer;
+    session_active_count integer;
+begin
+    -- Incrementar SessionActive y obtener su nuevo valor
+    update Usuarios 
+    set SessionActive = SessionActive + 1 
+    where idUsuario = idusuario_parametro
+    returning SessionActive into session_active_count;
+    
+    -- Verificar si SessionActive llegó a 3 para cambiar el Status a 'bloqueado'
+    if session_active_count >= 3 then
+        update Usuarios 
+        set Status = 'bloqueado' 
+        where idUsuario = idusuario_parametro;
+    end if;
+    
+    -- Verificar cuántas filas se actualizaron
+    get diagnostics updated_rows = row_count;
+    
+    -- Si se actualizó al menos una fila, retornar verdadero (true), de lo contrario, falso (false)
+    if updated_rows > 0 then
+        return true;
+    else
+        return false;
+    end if;
+end;
+$$
+language plpgsql;
+select actualizarIntentosSesion(1)
+select*from usuarios
+
+CREATE OR REPLACE FUNCTION verificarUsuarioBloqueado(idUsuarioParam integer) RETURNS boolean AS
+$$
+DECLARE
+    estado varchar(20);
+BEGIN
+    -- Obtener el estado del usuario según el idUsuario
+    SELECT status INTO estado FROM Usuarios WHERE idUsuario = idUsuarioParam;
+    
+    -- Verificar si el estado es 'bloqueado' y retornar true o false
+    IF estado = 'bloqueado' THEN
+        RETURN true;
+    ELSE
+        RETURN false;
+    END IF;
+    
+    -- Si no se encuentra el usuario, se podría manejar con un bloque EXCEPTION
+    -- Pero en este caso no es necesario si se asume que idUsuario siempre existe
+END;
+$$
+LANGUAGE plpgsql;
+
+select verificarUsuarioBloqueado(1)
+
+	--------------rolname del usuario--------------
+CREATE OR REPLACE FUNCTION obtenerRolDeUsuario(idUsuarioParam integer) RETURNS varchar(50) AS
+$$
+DECLARE
+    nombreRol varchar(50);
+BEGIN
+    -- Obtener el RolName del usuario según el idUsuario
+    SELECT r.RolName INTO nombreRol
+    FROM Rol r
+    JOIN Rol_Usuarios ru ON r.idRol = ru.idRol
+    WHERE ru.idUsuario = idUsuarioParam;
+    
+    RETURN nombreRol;
+END;
+$$
+LANGUAGE plpgsql;
+
+select obtenerRolDeUsuario(2)
+select *from rol_usuarios
+	-----------Rol--------
+create function registrarRol(rol varchar(50)) returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		insert into rol (rolname)  
+		values ($1);
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+select registrarRol('Estandar')
+select * from rol
+	
+create or replace function actualizarRol( rol varchar(50), idrol integer) 
+	returns boolean as
+$$
+declare ban boolean; 
+		
+begin	
+	begin		
+		update rol 
+			set rolname = coalesce($1, rolname)
+			where idrol = $2;
+		ban = true;
+	exception when others then
+		ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+create or replace function eliminarRol(idrol integer)   returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		delete from rol where rolname = $1;
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+-----------rolopciones----------
+create function registrarRolOpcion(opcion varchar(50)) returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		insert into rolopciones (nombreopcion)
+		values ($1);
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+create or replace function actualizarRolOpciones( opcion varchar(50), idopcion integer) 
+	returns boolean as
+$$
+declare 
+	ban boolean; 		
+begin	
+	begin		
+		update rolopciones 
+			set nombreopcion = coalesce($1, nombreopcion)
+			where idopcion = $2;
+		ban = true;
+	exception when others then
+		ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+create or replace function eliminarRolOpciones(idopcion varchar(50)) 
+	returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		delete from rolopciones where idopcion = $1;
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+---------asignar roles a usuarios-------
+create or replace function asignarRol(idrolparametro integer, idusuarioparametro integer) returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		insert into rol_usuarios (idrol, idusuario)  
+		values (idrolparametro, idusuarioparametro);
+		ban := true;
+	exception
+		when others then
+			ban := false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+	--------sessions---------
+
+create or replace function registrodeSesiones(fechaingreso date, fechacierre date, idusuario integer) returns varchar as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		insert into sessions (fechaingreso, fechacierre, idusuario)  
+		values ($1, $2, $3);
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+create or replace function eliminarSesion(idusuarioparametro integer)   returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		delete from sessions where idusuario = idusuarioparametro;
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+select eliminarsesion(1)
+select * from sessions
+create or replace function actualizarSesion(fechaingreso date,
+	fechacierre date, idusuario integer)   returns boolean as
+$$
+declare
+	ban boolean;
+begin
+	begin
+		update sessions 
+		set fechaingreso = coalesce($1, fechaingreso),
+		fechacierre = coalesce($2, fechacierre)
+		where idusuario = $3;
+		ban = true;
+	exception
+		when others then
+			ban = false;
+	end;
+	return ban;
+end;
+$$ language plpgsql
+
+
+--------estructura para pruebas ---------
+	
+do $$
+declare var varchar;
+begin
+	if (var is null )then 
+		var := 'si era nulo';
+	end if;
+	Raise Notice 'La noticia es la siguiente: %', var;
+end $$;
+
+-------datos de usuario--------
+CREATE OR REPLACE FUNCTION obtenerDatosPersonaYUsuarioPorUsername(
+    usuario_username VARCHAR(50)
+) RETURNS TABLE (
+    idPersona INTEGER,
+    Nombre VARCHAR(60),
+    Apellido VARCHAR(60),
+    Identificacion VARCHAR(10),
+    FechaNacimiento DATE,
+    idUsuario INTEGER,
+    UserName VARCHAR(50),
+    Pass VARCHAR(60),
+    Mail VARCHAR(120),
+    SessionActive CHAR(1),
+    Status CHAR(20)
+) AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT p.idPersona, p.Nombre, p.Apellido, p.Identificacion, p.FechaNacimiento,
+           u.idUsuario, u.UserName, u.Pass, u.Mail, u.SessionActive, u.Status
+    FROM Persona p
+    INNER JOIN Usuarios u ON p.idPersona = u.idPersona
+    WHERE u.UserName = usuario_username;
+END;
+$$ LANGUAGE plpgsql;
+
