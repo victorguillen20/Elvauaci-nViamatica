@@ -90,10 +90,10 @@ export const insertUsers = async (req: Request, res: Response): Promise<Response
         if (response.rows[0].registrarusuarioestandar == false) {
             return  res.status(500).json({ message: 'Error al cargar los datos'});    
         }
-        return res.status(200).json({ registrarusuarioestandar: true});               
+        return res.status(200).json({ registrodeusuario: true});               
     } catch (error) {
         console.log(error);
-        return res.status(500).json('Internal Server error...')
+        return res.status(500).json({ registrodeusuario: false})
     }   
     
 }
@@ -163,7 +163,7 @@ export const Login = async (req: Request, res: Response): Promise<Response> => {
                 const response: QueryResult = await pool.query('select tomarPasswordHashedporelMail($1)', [username]);
                 const hashedPasswordfromDB = response.rows[0].tomarpasswordhashedporelmail;
                 if (hashedPasswordfromDB == 'false') {
-                    return res.status(500).json({ login: 'Existe un error al comparar los datos.' });
+                    return res.status(500).json({ login: false, rol: '', message:'Existe un error al comparar los datos.' });
                 } else {                    
                     const isMatch = await bcryptjs.compare(password, hashedPasswordfromDB);                    
                     if (!isMatch) {
