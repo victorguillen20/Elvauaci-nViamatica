@@ -1,6 +1,8 @@
 import express from 'express';
 import cors, { CorsOptions } from 'cors';
 
+import indexRoutes from './routes/routes';
+
 const app = express();
 
 
@@ -15,5 +17,6 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 
+app.use(indexRoutes);
 app.listen(4000);
 console.log('Server on port', 4000);
