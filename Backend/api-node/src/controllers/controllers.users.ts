@@ -8,18 +8,39 @@ import { generarCorreoElectronico, obtenerFechaHoraActual, validarIdentificacion
 export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
     try {        
         const response: QueryResult = await pool.query('select*from obtenertodoslosUsuarios()');
-        return res.status(200).json(response.rows);
+        // Mapeo de las filas obtenidas de la base de datos
+        const rowsWithValues = response.rows.map(row => ({
+            idusuario: row.idusuario,
+            nombre: row.nombre,
+            apellido: row.apellido,
+            identificacion: row.identificacion,
+            fechanacimiento: row.fechanacimiento,
+            username: row.username,
+            mail: row.mail,
+            status: row.status,
+        }));
+        // construimos el objeto de respuesta con el campo 'value' que contiene el arreglo de personas
+        const responseObject = {
+            value: rowsWithValues
+        }
+        return res.status(200).json(responseObject);
     } catch (error) {
         console.log(error);
         return res.status(500).json('Internal Server error...')
-    }
+    }   
     
 }
 
 export const getUsers = async (req: Request, res: Response): Promise<Response> => {
     try {
         const { username } = req.body;
-        const response: QueryResult = await pool.query('select*from obtenerDatosPersonaYUsuarioPorUsername($1)',[username]);
+        const parametrovalidado = validarParametro(username);        
+        if (parametrovalidado == 'email') {
+            const response: QueryResult = await pool.query('select*from obtenerDatosPersonaYUsuarioPorMail($1)',[username]);
+            return res.status(200).json(response.rows);   
+            
+        }        
+        const response: QueryResult = await pool.query('select*from obtenerDatosPersonaYUsuarioPorUsername($1)',[username]);        
         return res.status(200).json(response.rows);
     } catch (error) {
         console.log(error);
@@ -222,7 +243,7 @@ export const logOut = async (req: Request, res: Response): Promise<Response> => 
             //se agrega el cierre de la sesion
             const fechayhora = obtenerFechaHoraActual();
             const response4: QueryResult = await pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
-            return res.status(200).json({logOut: true});   
+            return res.status(200).json({logout: true});   
             
         }         
         const response1: QueryResult = await pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
@@ -230,10 +251,10 @@ export const logOut = async (req: Request, res: Response): Promise<Response> => 
         //se agrega el cierre de la sesion
         const fechayhora = obtenerFechaHoraActual();
         const response4: QueryResult = await pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
-        return res.status(200).json({logOut: true});       
+        return res.status(200).json({logout: true});       
         
     } catch (error) {
         console.log(error);
-        return res.status(200).json({logOut: false});
+        return res.status(200).json({logout: false});
     }    
 }

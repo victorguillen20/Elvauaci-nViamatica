@@ -19,7 +19,22 @@ const validaciones_1 = require("../utils/validaciones");
 const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const response = yield database_conection_1.pool.query('select*from obtenertodoslosUsuarios()');
-        return res.status(200).json(response.rows);
+        // Mapeo de las filas obtenidas de la base de datos
+        const rowsWithValues = response.rows.map(row => ({
+            idusuario: row.idusuario,
+            nombre: row.nombre,
+            apellido: row.apellido,
+            identificacion: row.identificacion,
+            fechanacimiento: row.fechanacimiento,
+            username: row.username,
+            mail: row.mail,
+            status: row.status,
+        }));
+        // construimos el objeto de respuesta con el campo 'value' que contiene el arreglo de personas
+        const responseObject = {
+            value: rowsWithValues
+        };
+        return res.status(200).json(responseObject);
     }
     catch (error) {
         console.log(error);
@@ -30,6 +45,11 @@ exports.getAllUsers = getAllUsers;
 const getUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { username } = req.body;
+        const parametrovalidado = (0, validaciones_1.validarParametro)(username);
+        if (parametrovalidado == 'email') {
+            const response = yield database_conection_1.pool.query('select*from obtenerDatosPersonaYUsuarioPorMail($1)', [username]);
+            return res.status(200).json(response.rows);
+        }
         const response = yield database_conection_1.pool.query('select*from obtenerDatosPersonaYUsuarioPorUsername($1)', [username]);
         return res.status(200).json(response.rows);
     }
@@ -216,18 +236,18 @@ const logOut = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             //se agrega el cierre de la sesion
             const fechayhora = (0, validaciones_1.obtenerFechaHoraActual)();
             const response4 = yield database_conection_1.pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
-            return res.status(200).json({ logOut: true });
+            return res.status(200).json({ logout: true });
         }
         const response1 = yield database_conection_1.pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
         const idusuario = response1.rows[0].obteneridusuarioporusername;
         //se agrega el cierre de la sesion
         const fechayhora = (0, validaciones_1.obtenerFechaHoraActual)();
         const response4 = yield database_conection_1.pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
-        return res.status(200).json({ logOut: true });
+        return res.status(200).json({ logout: true });
     }
     catch (error) {
         console.log(error);
-        return res.status(200).json({ logOut: false });
+        return res.status(200).json({ logout: false });
     }
 });
 exports.logOut = logOut;
