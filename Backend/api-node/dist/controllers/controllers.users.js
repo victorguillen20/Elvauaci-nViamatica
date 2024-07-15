@@ -124,19 +124,37 @@ const Login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 return res.status(404).json({ login: true, rol: '', message: 'mail incorrecto' });
             }
         }
+        //como es posiblemente un username, lo buscamos en la base de datos
         const response = yield database_conection_1.pool.query('select userExist($1)', [username]);
         if (response.rows[0].userexist) {
+            const response1 = yield database_conection_1.pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
+            const idusuario = response1.rows[0].obteneridusuarioporusername;
+            //pregunto si el usuario esta bloqueado
+            const response2 = yield database_conection_1.pool.query('select verificarUsuarioBloqueado($1)', [idusuario]);
+            const verificacion = response2.rows[0].verificarusuariobloqueado;
+            if (verificacion) {
+                return res.status(200).json({ login: false, rol: '', message: 'El usuario se encuentra bloqueado' });
+            }
             const response = yield database_conection_1.pool.query('select tomarPasswordHashed($1)', [username]);
             const hashedPasswordfromDB = response.rows[0].tomarpasswordhashed;
             if (hashedPasswordfromDB == 'false') {
-                return res.status(404).json({ Login: 'Usuario incorrecto' });
+                return res.status(404).json({ login: false, rol: '', message: 'Usuario incorrecto' });
             }
             const isMatch = yield bcrypt_1.default.compare(password, hashedPasswordfromDB);
-            console.log(isMatch);
             if (!isMatch) {
-                return res.status(404).json({ Login: 'Contraseña Incorrecta' });
+                // se segistran los intentos fallidos del password
+                const response1 = yield database_conection_1.pool.query('select obteneridusuariopormail($1)', [username]);
+                const idusuario = response1.rows[0].obteneridusuariopormail;
+                const response3 = yield database_conection_1.pool.query('select actualizarIntentosSesion($1)', [idusuario]);
+                return res.status(404).json({ login: false, rol: '', message: 'Password incorrecto' });
             }
-            return res.status(201).json({ login: true });
+            //se agrega el inicio de la sesion
+            const fechayhora = (0, validaciones_1.obtenerFechaHoraActual)();
+            const response4 = yield database_conection_1.pool.query('select registrarentrada($1, $2)', [fechayhora, idusuario]);
+            //obtenerRolDeUsuario
+            const response3 = yield database_conection_1.pool.query('select obtenerRolDeUsuario($1)', [idusuario]);
+            const rolusuario = response3.rows[0].obtenerroldeusuario;
+            return res.status(201).json({ login: true, rol: rolusuario, message: 'Login exitoso' });
         }
         else {
             return res.status(500).json({ login: 'Usuario incorrecto' });

@@ -119,20 +119,43 @@ export const Login = async (req: Request, res: Response): Promise<Response> => {
             } else {
                 return res.status(404).json({ login: true, rol: '', message: 'mail incorrecto'});
             }
-        }        const response: QueryResult = await pool.query('select userExist($1)', [username]);
+        }        
+        //como es posiblemente un username, lo buscamos en la base de datos
+        const response: QueryResult = await pool.query('select userExist($1)', [username]);
         
-        if (response.rows[0].userexist) {            
+        if (response.rows[0].userexist) {
+            
+            const response1: QueryResult = await pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
+            const idusuario = response1.rows[0].obteneridusuarioporusername; 
+
+            //pregunto si el usuario esta bloqueado
+            const response2: QueryResult = await pool.query('select verificarUsuarioBloqueado($1)', [idusuario]);
+            const verificacion = response2.rows[0].verificarusuariobloqueado;
+            if (verificacion) {
+                return res.status(200).json({login: false, rol: '', message: 'El usuario se encuentra bloqueado'});
+            }
+
             const response: QueryResult = await pool.query('select tomarPasswordHashed($1)', [username]);
             const hashedPasswordfromDB = response.rows[0].tomarpasswordhashed;            
             if ( hashedPasswordfromDB == 'false') {
-                return res.status(404).json({ Login: 'Usuario incorrecto'});
+                return res.status(404).json({ login: false, rol: '', message: 'Usuario incorrecto'});
             }
             const isMatch = await bcryptjs.compare(password, hashedPasswordfromDB);
-            console.log(isMatch);
             if (!isMatch) {
-                return res.status(404).json({ Login: 'Contraseña Incorrecta'});
+                // se segistran los intentos fallidos del password
+                const response1: QueryResult = await pool.query('select obteneridusuariopormail($1)', [username]);
+                const idusuario = response1.rows[0].obteneridusuariopormail;
+                const response3: QueryResult = await pool.query('select actualizarIntentosSesion($1)', [idusuario]);
+                return res.status(404).json({ login: false, rol: '', message: 'Password incorrecto'});
             }
-            return res.status(201).json({ login: true });
+            //se agrega el inicio de la sesion
+            const fechayhora = obtenerFechaHoraActual();
+            const response4: QueryResult = await pool.query('select registrarentrada($1, $2)', [fechayhora, idusuario]);
+
+            //obtenerRolDeUsuario
+            const response3: QueryResult = await pool.query('select obtenerRolDeUsuario($1)', [idusuario]);
+            const rolusuario = response3.rows[0].obtenerroldeusuario;
+            return res.status(201).json({ login: true, rol: rolusuario, message: 'Login exitoso' });
         } else {
             return res.status(500).json({ login: 'Usuario incorrecto' });
         }
