@@ -8,5 +8,6 @@ router.get('/users', controllers_users_1.getAllUsers);
 router.post('/users/login', controllers_users_1.Login);
 router.post('/users/logout', controllers_users_1.logOut);
 router.post('/users/registrar', controllers_users_1.insertUsers);
+router.post('/users/actualizar', controllers_users_1.updateUsers);
 router.delete('/users/delete');
 exports.default = router;

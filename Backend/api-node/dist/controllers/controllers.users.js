@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logOut = exports.Login = exports.insertUsers = exports.getUsers = exports.getAllUsers = void 0;
+exports.logOut = exports.Login = exports.updateUsers = exports.insertUsers = exports.getUsers = exports.getAllUsers = void 0;
 const database_conection_1 = require("../database.conection");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const validaciones_1 = require("../utils/validaciones");
@@ -81,6 +81,46 @@ const insertUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.insertUsers = insertUsers;
+const updateUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { username, password, nombres, apellidos, identificacion, fechanacimiento } = req.body;
+    try {
+        //validamos el usuario
+        const usuariovalidadoPromise = (0, validaciones_1.validarUsuario)(username);
+        const usuariovalidado = yield usuariovalidadoPromise;
+        if (usuariovalidado !== 'true') {
+            console.log(usuariovalidado);
+            return res.status(200).json({ registrodeusuario: usuariovalidado });
+        }
+        //validamos el password
+        const passwordvalidado = (0, validaciones_1.validarPassword)(password);
+        if (passwordvalidado !== 'true') {
+            console.log(passwordvalidado);
+            return res.status(200).json({ registrodeusuario: passwordvalidado });
+        }
+        //validamos la identificacion
+        const identificacionvalidada = (0, validaciones_1.validarIdentificacion)(identificacion);
+        if (identificacionvalidada !== 'true') {
+            console.log(identificacionvalidada);
+            return res.status(200).json({ registrodeusuario: identificacionvalidada });
+        }
+        const response1 = yield database_conection_1.pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
+        const idusuario = response1.rows[0].obteneridusuarioporusername;
+        //codificamos la contrase;a
+        const salt = yield bcrypt_1.default.genSalt(10);
+        const hashedPassword = yield bcrypt_1.default.hash(password, salt);
+        //enviamos los datos a registrar
+        const response = yield database_conection_1.pool.query('select registrarUsuarioEstandar($1, $2, $3, $4, $5, $6, $7)', [idusuario, username, hashedPassword, nombres, apellidos, identificacion, fechanacimiento]);
+        if (response.rows[0].registrarusuarioestandar == false) {
+            return res.status(500).json({ updateusers: false, message: 'Error al cargar los datos' });
+        }
+        return res.status(200).json({ updateusers: true, message: 'Datos actualizados' });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ updateusers: false, message: 'Error al actualizar los datos' });
+    }
+});
+exports.updateUsers = updateUsers;
 const Login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, password } = req.body;
     try {

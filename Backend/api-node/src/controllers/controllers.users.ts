@@ -77,6 +77,53 @@ export const insertUsers = async (req: Request, res: Response): Promise<Response
     
 }
 
+export const updateUsers = async (req: Request, res: Response): Promise<Response> => {
+    const { username, password, nombres, apellidos, identificacion, fechanacimiento } = req.body;
+    try {        
+        //validamos el usuario
+        const usuariovalidadoPromise = validarUsuario(username);
+        const usuariovalidado = await usuariovalidadoPromise;
+        if (usuariovalidado !== 'true') {
+            console.log(usuariovalidado);
+            return res.status(200).json({ registrodeusuario: usuariovalidado});
+        }
+
+        //validamos el password
+        const passwordvalidado = validarPassword(password);
+        if (passwordvalidado !== 'true') {
+            console.log(passwordvalidado);
+            return res.status(200).json({ registrodeusuario: passwordvalidado});
+        }
+
+        //validamos la identificacion
+        const identificacionvalidada = validarIdentificacion(identificacion);
+        if (identificacionvalidada !== 'true') {
+            console.log(identificacionvalidada);
+            return res.status(200).json({ registrodeusuario: identificacionvalidada});
+        }
+        const response1: QueryResult = await pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
+        const idusuario = response1.rows[0].obteneridusuarioporusername; 
+
+        
+        //codificamos la contrase;a
+        const salt = await bcryptjs.genSalt(10);
+        const hashedPassword = await bcryptjs.hash(password, salt);
+        
+        //enviamos los datos a registrar
+        const response: QueryResult = await pool.query('select registrarUsuarioEstandar($1, $2, $3, $4, $5, $6, $7)', 
+            [idusuario, username, hashedPassword, nombres, apellidos, identificacion, fechanacimiento]);
+        
+        if (response.rows[0].registrarusuarioestandar == false) {
+            return  res.status(500).json({ updateusers: false, message: 'Error al cargar los datos'});    
+        }
+        return res.status(200).json({ updateusers: true, message: 'Datos actualizados'});               
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({updateusers: false, message: 'Error al actualizar los datos'})
+    }   
+    
+}
+
 export const Login = async (req: Request, res: Response): Promise<Response> => {
     const { username, password } = req.body;
     try {
