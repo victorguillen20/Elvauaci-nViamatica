@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Login = exports.insertUsers = exports.getUsers = exports.getAllUsers = void 0;
+exports.logOut = exports.Login = exports.insertUsers = exports.getUsers = exports.getAllUsers = void 0;
 const database_conection_1 = require("../database.conection");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const validaciones_1 = require("../utils/validaciones");
@@ -166,3 +166,28 @@ const Login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.Login = Login;
+const logOut = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { username } = req.body;
+    try {
+        const parametrovalidado = (0, validaciones_1.validarParametro)(username);
+        if (parametrovalidado == 'email') {
+            const response1 = yield database_conection_1.pool.query('select obteneridusuariopormail($1)', [username]);
+            const idusuario = response1.rows[0].obteneridusuariopormail;
+            //se agrega el cierre de la sesion
+            const fechayhora = (0, validaciones_1.obtenerFechaHoraActual)();
+            const response4 = yield database_conection_1.pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
+            return res.status(200).json({ logOut: true });
+        }
+        const response1 = yield database_conection_1.pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
+        const idusuario = response1.rows[0].obteneridusuarioporusername;
+        //se agrega el cierre de la sesion
+        const fechayhora = (0, validaciones_1.obtenerFechaHoraActual)();
+        const response4 = yield database_conection_1.pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
+        return res.status(200).json({ logOut: true });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(200).json({ logOut: false });
+    }
+});
+exports.logOut = logOut;

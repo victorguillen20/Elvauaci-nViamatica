@@ -164,3 +164,29 @@ export const Login = async (req: Request, res: Response): Promise<Response> => {
         return res.status(500).json({ login: false });
     }
 }
+
+export const logOut = async (req: Request, res: Response): Promise<Response> => {
+    const { username } = req.body;
+    try {
+        const parametrovalidado = validarParametro(username);        
+        if (parametrovalidado == 'email') {
+            const response1: QueryResult = await pool.query('select obteneridusuariopormail($1)', [username]);
+            const idusuario = response1.rows[0].obteneridusuariopormail;
+            //se agrega el cierre de la sesion
+            const fechayhora = obtenerFechaHoraActual();
+            const response4: QueryResult = await pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
+            return res.status(200).json({logOut: true});   
+            
+        }         
+        const response1: QueryResult = await pool.query('select obtenerIdUsuarioPorUsername($1)', [username]);
+        const idusuario = response1.rows[0].obteneridusuarioporusername;        
+        //se agrega el cierre de la sesion
+        const fechayhora = obtenerFechaHoraActual();
+        const response4: QueryResult = await pool.query('select registrarsalida($1, $2)', [fechayhora, idusuario]);
+        return res.status(200).json({logOut: true});       
+        
+    } catch (error) {
+        console.log(error);
+        return res.status(200).json({logOut: false});
+    }    
+}
