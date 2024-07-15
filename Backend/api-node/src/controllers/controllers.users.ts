@@ -16,6 +16,18 @@ export const getAllUsers = async (req: Request, res: Response): Promise<Response
     
 }
 
+export const getUsers = async (req: Request, res: Response): Promise<Response> => {
+    try {
+        const { username } = req.body;
+        const response: QueryResult = await pool.query('select*from obtenerDatosPersonaYUsuarioPorUsername($1)',[username]);
+        return res.status(200).json(response.rows);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json('Internal Server error...')
+    }
+    
+}
+
 export const insertUsers = async (req: Request, res: Response): Promise<Response> => {
     const { username, password, nombres, apellidos, identificacion, fechanacimiento } = req.body;
     try {
