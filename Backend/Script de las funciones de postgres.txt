@@ -1,0 +1,29 @@
+create or replace function obtenertodoslosUsuarios( ) 
+returns table (
+	idUsuario integer,
+    Nombre VARCHAR(60),
+    Apellido VARCHAR(60),
+    Identificacion VARCHAR(10),
+    FechaNacimiento DATE,
+    UserName VARCHAR(50),
+    Mail VARCHAR(120), 
+	status varchar(20)
+) as
+$$
+begin
+    return query
+    select 
+		   u.idusuario as idusuario,
+           p.Nombre as nombre,
+           p.Apellido as apellido,
+           p.Identificacion as identificacion,
+           p.FechaNacimiento as fechanacimiento,
+           u.UserName as username,
+           u.Mail as mail,
+		   u.status as status
+    from Persona p
+    inner join Usuarios u on p.idPersona = u.idPersona;
+end;
+$$ language plpgsql;
+
+select*from obtenertodoslosUsuarios()

@@ -1,0 +1,49 @@
+create table Persona(
+	idPersona serial primary key,
+	Nombre varchar(60) not null,
+	Apellido varchar(60) not null,
+	Identificacion varchar(10) not null unique, 
+	FechaNacimiento date not null
+);
+
+create table RolOpciones(
+	idOpcion serial primary key,
+	NombreOpcion varchar(50) not null
+);
+
+create table Rol(
+	idRol serial primary key,
+	RolName varchar(50) not null
+);
+
+create table Rol_RolOpciones(
+	idRol integer,
+	idOpcion integer,
+	foreign key (idRol) references Rol(idRol) on delete cascade,
+	foreign key (idOpcion) references RolOpciones(idOpcion) on delete cascade
+);
+
+create table Usuarios(
+	idUsuario serial primary key,
+	idPersona integer not null,
+	UserName varchar(50)not null unique,
+	Password varchar(60)not null,
+	Mail varchar(120)not null,
+	SessionActive integer not null,
+	Status varchar(20)not null,
+	foreign key (idPersona) references Persona(idPersona) on delete cascade
+);
+
+create table Rol_Usuarios(
+	idRol integer,
+	idUsuario integer,
+	foreign key (idRol) references Rol(idRol) on delete cascade,
+	foreign key (idUsuario) references Usuarios(idUsuario) on delete cascade
+);
+
+create table Sessions(
+	FechaIngreso TIMESTAMP,
+	FechaCierre TIMESTAMP,
+	idUsuario integer not null,
+	foreign key (idUsuario) references Usuarios(idusuario) on delete cascade
+);
