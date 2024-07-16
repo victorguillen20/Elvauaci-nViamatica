@@ -54,7 +54,7 @@ const insertUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     try {
         const verificacion = yield (0, repositories_users_verificaciones_1.verificarExistenciaIdentificacion)(identificacion);
         if (verificacion) {
-            return res.status(500).json({ registrodeusuario: 'Ya existe una cuenta con estos datos' });
+            return res.status(500).json({ registrodeusuario: 'identificacion existente' });
         }
         const usuariovalidadoPromise = (0, validaciones_1.validarUsuario)(username);
         const usuariovalidado = yield usuariovalidadoPromise;
@@ -79,7 +79,7 @@ const insertUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const response = yield (0, repositories_registros_1.registrarUsuarioEstandar)(username, hashedPassword, correogenerado, nombres, apellidos, identificacion, fechanacimiento);
         console.log(correogenerado);
         if (response == false) {
-            return res.status(500).json({ message: 'Error al cargar los datos' });
+            return res.status(500).json({ registrodeusuario: false });
         }
         return res.status(200).json({ registrodeusuario: true });
     }

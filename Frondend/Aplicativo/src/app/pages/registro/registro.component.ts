@@ -18,7 +18,7 @@ import { Usersinsert } from '../../models/Usersinsert';
   styleUrl: './registro.component.css'
 })
 export class RegistroComponent {
-  private personasService = inject(AccesoService);
+  private accesoService = inject(AccesoService);
   private router = inject(Router);
   public formBuild = inject(FormBuilder);
 
@@ -35,16 +35,16 @@ export class RegistroComponent {
     if(this.formRegistro.invalid)return;
 
     const objeto:Usersinsert = {
-      username: this.formRegistro.value.nusername,
+      username: this.formRegistro.value.username,
       password: this.formRegistro.value.password,
       nombres: this.formRegistro.value.nombres,
       apellidos: this.formRegistro.value.apellidos,
       identificacion: this.formRegistro.value.identificacion,
       fechanacimiento: this.formRegistro.value.fechanacimiento
     }
-    this.personasService.registrarse(objeto).subscribe({
+    this.accesoService.registrarse(objeto).subscribe({
       next: (data) => {
-          if(data.registrodeusuario = 'true'){
+          if(data.registrodeusuario == true){
             alert("Registro exitoso");
             this.router.navigate(['']);
           }else{

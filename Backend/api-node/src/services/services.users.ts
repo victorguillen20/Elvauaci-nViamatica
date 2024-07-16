@@ -44,7 +44,7 @@ export const insertUsers = async (req: Request, res: Response): Promise<Response
     try {        
         const verificacion = await verificarExistenciaIdentificacion(identificacion);
         if (verificacion) {
-            return res.status(500).json({ registrodeusuario: 'Ya existe una cuenta con estos datos'});
+            return res.status(500).json({ registrodeusuario: 'identificacion existente'});
         }
         const usuariovalidadoPromise = validarUsuario(username);
         const usuariovalidado = await usuariovalidadoPromise;
@@ -76,7 +76,7 @@ export const insertUsers = async (req: Request, res: Response): Promise<Response
             username, hashedPassword,  correogenerado, nombres, apellidos, identificacion, fechanacimiento);
             console.log(correogenerado);
         if (response == false) {
-            return  res.status(500).json({ message: 'Error al cargar los datos'});    
+            return  res.status(500).json({ registrodeusuario: false});    
         }
         return res.status(200).json({ registrodeusuario: true});               
     } catch (error) {

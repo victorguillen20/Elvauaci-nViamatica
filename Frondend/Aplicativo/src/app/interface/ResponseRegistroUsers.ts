@@ -1,3 +1,3 @@
 export interface ResponseRegistroUsers{
-  registrodeusuario: string
+  registrodeusuario: boolean
 }
