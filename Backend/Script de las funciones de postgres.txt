@@ -1,12 +1,12 @@
 create or replace function registrarPersona(nombres varchar(60), apellidos varchar(60),
- identificacion varchar(10), fechanacimiento date) returns integer as
+ identificacionparametro varchar(10), fechanacimientoparametro date) returns integer as
 $$
 declare
 	new_id integer;
 begin
 	begin
 		insert into persona (nombre, apellido, identificacion, fechanacimiento) 
-		values ($1, $2, $3, $4) RETURNING idpersona into new_id;
+		values (nombres, apellidos, identificacionparametro, fechanacimientoparametro) RETURNING idpersona into new_id;
 		return new_id;
 	exception
 		when others then
@@ -16,24 +16,30 @@ end;
 $$ language plpgsql
 
 
-create or replace function actualizarPersona( nombreactualizar varchar(60), apellidoactualizar varchar(60), identificacionactualizar varchar(10),
+create or replace function actualizarPersona(idusuarioactualizar integer, nombreactualizar varchar(60), apellidoactualizar varchar(60), identificacionactualizar varchar(10),
 	fechanacimientoactualizar date, idpersonaactualizar integer) returns boolean as
 $$
 declare 
-	ban boolean; 
-begin	
+	idpersonaactualizar integer;
+begin
+	-- Obtener el idPersona relacionado con el idUsuario proporcionado
+    select idpersona into idpersonaactualizar from usuarios where idusuario = idusuarioactualizar;
+	-- Validar si se encontró un idPersona
+    if idpersonaactualizar is null then
+        -- Si no se encontró, retornar false
+        return false;
+    end if;
 	begin		
 		update persona 
-			set nombre = coalesce($1, nombre),  
-			apellido = coalesce($2, apellido), 
-			identificacion = coalesce($3, identificacion), 
-			fechanacimiento = coalesce($4, fechanacimiento)
-			where idpersona = $5;
-		ban = true;
+			set nombre = coalesce(nombreactualizar, nombre),  
+			apellido = coalesce(apellidoactualizar, apellido), 
+			identificacion = coalesce(identificacionactualizar, identificacion), 
+			fechanacimiento = coalesce(fechanacimientoactualizar, fechanacimiento)
+			where idpersona = idpersonaactualizar;		
+		return true;
 	exception when others then
-		ban = false;
-	end;
-	return ban;
+		return false;
+	end;	
 end;
 $$ language plpgsql
 
@@ -128,6 +134,34 @@ begin
     where u.UserName = usuario_username;
 end;
 $$ language plpgsql;
+------------------------obtener datos del usuario por mail-----------
+create or replace function obtenerDatosPersonaYUsuarioPorMail(
+    mailparametro VARCHAR(50)
+) returns table (    
+    Nombre VARCHAR(60),
+    Apellido VARCHAR(60),
+    Identificacion VARCHAR(10),
+    FechaNacimiento DATE,
+    UserName VARCHAR(50),
+    Mail VARCHAR(120)
+) as
+$$
+begin
+    return query
+    select 
+           p.Nombre AS nombre,
+           p.Apellido AS apellido,
+           p.Identificacion AS identificacion,
+           p.FechaNacimiento AS fechanacimiento,
+           u.UserName AS username,
+           u.Mail AS Mail
+    from Persona p
+    inner join Usuarios u ON p.idPersona = u.idPersona
+    where u.Mail = mailparametro;
+end;
+$$ language plpgsql;
+
+select * from obtenerDatosPersonaYUsuarioPorMail('polivarese@mail.com')
 
 create or replace function obtenertodoslosUsuarios( ) 
 returns table (
@@ -160,29 +194,20 @@ $$ language plpgsql;
 select*from obtenertodoslosUsuarios()
 select*from obtenerDatosPersonaYUsuarioPorUsername('vgguillen')
 
-create or replace function actualizarUsuarios( usuarioregistrar varchar(50), passwordregistrar varchar(60),
- mailregistrar varchar(120), sessionactregistrar char(1), idpersonaregistrar integer, statusregistrar char(20),
-	nombres varchar(60), apellidos varchar(60),
- identificacion varchar(10), fechanacimiento date) returns boolean as
+create or replace function actualizarUsuarios(idusuarioparametro integer, usuarioregistrar varchar(50), passwordregistrar varchar(60),
+	nombresregistrar varchar(60), apellidosregistrar varchar(60),
+ identificacionregistrar varchar(10), fechanacimientoregistrar date) returns boolean as
 $$
 declare 
-	ban boolean; 
-	idpersona_actualizar INTEGER;
+	ban boolean; 	
 begin	
 	begin
-		select idpersona into idpersona_actualizar
-		from usuarios
-		where username = $1;
-
-		perform actualizarPersona($7, $8, $9, $10, $5);
+		perform actualizarPersona(idusuarioparametro, nombresregistrar, apellidosregistrar, identificacionregistrar, fechanacimientoregistrar);
 
 		update usuarios 
-			set username = coalesce($1, username), 
-			password = coalesce($2, password),
-			mail = coalesce($3, mail), 
-			sessionactive = coalesce($4, sessionactive), 
-			status = coalesce($6, status) 
-			where pass = $2;
+			set username = coalesce(usuarioregistrar, username), 
+			password = coalesce(passwordregistrar, password)
+			where idusuario = idusuarioparametro;
 		ban = true;
 	exception when others then
 		ban = false;
@@ -286,7 +311,7 @@ $$ language plpgsql;
 select tomarPasswordHashedporelMail('vgguillen@gmial.com')
 select * from usuarios
 ---------recuperar id del usuario por el username------------
-create or replace function obtenerIdUsuarioPorUsername(usuario varchar(50)) 
+create or replace function obtenerIdUsuarioPorUsername(usuarioparametro varchar(50)) 
 returns integer as 
 $$
 declare	
@@ -294,11 +319,13 @@ declare
 begin
 	select idusuario into id_usuario
 	from usuarios
-	where username = $1;
+	where username = usuarioparametro;
 
 	return id_usuario;
 end;
 $$ language plpgsql;
+
+select obtenerIdUsuarioPorUsername('Pablito8');
 ---------recuperar id del usuario por el mail------------
 create or replace function obtenerIdUsuarioPormail(mailparametro varchar(120)) 
 returns integer as 

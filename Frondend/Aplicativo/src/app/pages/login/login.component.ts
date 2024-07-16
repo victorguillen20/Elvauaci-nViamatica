@@ -42,7 +42,7 @@ export class LoginComponent {
           }
           this.router.navigate(['inicio'])
         }else{
-          alert("Credenciales incorrectas");
+          alert(data.message);
         }
       },
       error:(error) => {

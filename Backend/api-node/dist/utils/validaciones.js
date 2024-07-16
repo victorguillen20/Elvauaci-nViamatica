@@ -20,14 +20,10 @@ function generarCorreoElectronico(nombres, apellidos) {
     return __awaiter(this, void 0, void 0, function* () {
         const nombreSeparado = nombres.split(' ');
         const apellidoSeparado = apellidos.split(' ');
-        // Tomar la primera letra del primer nombre en minúsculas
         const primeraLetraNombre = nombreSeparado[0].charAt(0).toLowerCase();
-        // Tomar el primer apellido en minúsculas y la primera letra del segundo apellido
         const primerApellido = apellidoSeparado[0].toLowerCase();
         const primeraLetraSegundoApellido = (apellidoSeparado.length > 1) ? apellidoSeparado[1].charAt(0).toLowerCase() : '';
-        // Generar el correo electrónico concatenando las partes
         let correoGenerado = `${primeraLetraNombre}${primerApellido}${primeraLetraSegundoApellido}@mail.com`;
-        // Verificar si el correo ya existe en la base de datos
         const correoExiste = yield existeMailEnUsuarios(correoGenerado);
         if (correoExiste) {
             correoGenerado = `${primeraLetraNombre}${primerApellido}${primeraLetraSegundoApellido}1@mail.com`;
@@ -35,7 +31,6 @@ function generarCorreoElectronico(nombres, apellidos) {
         return correoGenerado;
     });
 }
-// Función para verificar si el correo ya existe en la base de datos
 function existeMailEnUsuarios(mail) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -55,30 +50,24 @@ function existeMailEnUsuarios(mail) {
 function validarUsuario(username) {
     return __awaiter(this, void 0, void 0, function* () {
         let message = 'false';
-        // Validar la longitud mínima y máxima
         if (username.length < 8 || username.length > 20) {
             message = 'El username debe de tener mínimo 8 dígitos y máximo 20';
             return message;
         }
-        // Validar que no contenga signos
         if (!/^[a-zA-Z0-9]+$/.test(username)) {
             message = 'El username no debe de contener caracteres especiales';
             return message;
         }
-        // Validar que contenga al menos un número
         if (!/\d/.test(username)) {
             return message = 'El username al menos debe de tener un número';
         }
-        // Validar que contenga al menos una letra mayúscula
         if (!/[A-Z]/.test(username)) {
             return message = 'El username al menos debe de contener una letra mayúscula';
         }
-        // Verificar si el usuario ya existe en la base de datos
         const usuarioExiste = yield userExist(username);
         if (usuarioExiste) {
             return message = 'El usuario ya existe en la base de datos';
         }
-        // Si pasa todas las validaciones, retornar true
         return 'true';
     });
 }
