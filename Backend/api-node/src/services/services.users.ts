@@ -1,6 +1,4 @@
 import {Request, Response} from 'express'
-import { pool } from '../database.conection'
-import { QueryResult } from 'pg'
 import bcryptjs from 'bcrypt'
 
 import { existemailenusuarios, tomarPasswordHashed, tomarPasswordHashedporelMail, userExist } from '../repositories/repositories.users';
@@ -8,7 +6,7 @@ import { verificarExistenciaIdentificacion, verificarUsuarioBloqueado } from '..
 import { generarCorreoElectronico, obtenerFechaHoraActual, validarIdentificacion, validarParametro, validarPassword, validarUsuario } from '../utils/validaciones';
 import { obtenertodoslosUsuarios } from '../repositories/repositories.admin';
 import { obtenerDatosPersonaYUsuarioPorMail, obtenerDatosPersonaYUsuarioPorUsername, obteneridusuariopormail, obtenerIdUsuarioPorUsername, obtenerRolDeUsuario } from '../repositories/repositories.obtener.users';
-import { registrarentrada, registrarsalida, registrarUsuarioEstandar } from '../repositories/repositories.registros';
+import { registerUsersFromAdmin, registrarentrada, registrarsalida, registrarUsuarioEstandar } from '../repositories/repositories.registros';
 import { actualizarIntentosSesion, actualizarUsuarios, resetearIntentos } from '../repositories/repositories.actualizar.users';
 
 export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
@@ -85,6 +83,44 @@ export const insertUsers = async (req: Request, res: Response): Promise<Response
     }   
     
 }
+
+export const registerUsersfrAdmin = async (req: Request, res: Response): Promise<Response> => {
+    const users: {
+        username: string;
+        password: string;
+        nombres: string;
+        apellidos: string;
+        identificacion: string;
+        fechanacimiento: string;
+        status: string;
+    }[] = req.body;
+    
+    
+    try {
+        for (const user of users) {
+            const hashedPassword = await bcryptjs.hash(user.password, 10);
+            const success = await registerUsersFromAdmin(
+                user.username,
+                hashedPassword,
+                await generarCorreoElectronico(user.nombres, user.apellidos),
+                user.nombres,
+                user.apellidos,
+                user.identificacion,
+                user.fechanacimiento,
+                user.status
+            );
+            if (!success) {
+                console.error(`Error al registrar el usuario ${user.username}`);
+                return res.status(400).json({ success: false, message: `Error al registrar el usuario ${user.username}` });
+            }
+        }
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error al registrar los usuarios:', error);
+        return res.status(500).json({ success: false, message: 'Error interno del servidor', error: error });
+    }
+}
+
 
 export const updateUsers = async (req: Request, res: Response): Promise<Response> => {
     const { username, password, nombres, apellidos, identificacion, fechanacimiento } = req.body;

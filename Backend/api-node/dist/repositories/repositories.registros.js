@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registrarsalida = registrarsalida;
 exports.registrarentrada = registrarentrada;
 exports.registrarUsuarioEstandar = registrarUsuarioEstandar;
+exports.registerUsersFromAdmin = registerUsersFromAdmin;
 const database_conection_1 = require("../database.conection");
 function registrarsalida(fechayhora, idusuario) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -57,6 +58,22 @@ function registrarUsuarioEstandar(username, hashedPassword, correogenerado, nomb
         }
         catch (error) {
             console.error('Error al obtener el id del usuario:', error);
+            throw error;
+        }
+    });
+}
+function registerUsersFromAdmin(username, password, mail, nombres, apellidos, identificacion, fechanacimiento, status) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const client = yield database_conection_1.pool.connect();
+            const query = 'SELECT registrarUsuarioEstandarfromAdmin($1, $2, $3, $4, $5, $6, $7, $8)';
+            const result = yield client.query(query, [username, password, mail, nombres, apellidos, identificacion, fechanacimiento, status]);
+            const success = result.rows[0].registrarusuarioestandarfromadmin;
+            client.release();
+            return success;
+        }
+        catch (error) {
+            console.error('Error al registrar el usuario:', error);
             throw error;
         }
     });

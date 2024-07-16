@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logOut = exports.Login = exports.updateUsers = exports.insertUsers = exports.getUsers = exports.getAllUsers = void 0;
+exports.logOut = exports.Login = exports.updateUsers = exports.registerUsersfrAdmin = exports.insertUsers = exports.getUsers = exports.getAllUsers = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const repositories_users_1 = require("../repositories/repositories.users");
 const repositories_users_verificaciones_1 = require("../repositories/repositories.users.verificaciones");
@@ -89,6 +89,25 @@ const insertUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.insertUsers = insertUsers;
+const registerUsersfrAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const users = req.body;
+    try {
+        for (const user of users) {
+            const hashedPassword = yield bcrypt_1.default.hash(user.password, 10);
+            const success = yield (0, repositories_registros_1.registerUsersFromAdmin)(user.username, hashedPassword, yield (0, validaciones_1.generarCorreoElectronico)(user.nombres, user.apellidos), user.nombres, user.apellidos, user.identificacion, user.fechanacimiento, user.status);
+            if (!success) {
+                console.error(`Error al registrar el usuario ${user.username}`);
+                return res.status(400).json({ success: false, message: `Error al registrar el usuario ${user.username}` });
+            }
+        }
+        return res.status(200).json({ success: true });
+    }
+    catch (error) {
+        console.error('Error al registrar los usuarios:', error);
+        return res.status(500).json({ success: false, message: 'Error interno del servidor', error: error });
+    }
+});
+exports.registerUsersfrAdmin = registerUsersfrAdmin;
 const updateUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, password, nombres, apellidos, identificacion, fechanacimiento } = req.body;
     try {

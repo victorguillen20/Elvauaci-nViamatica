@@ -9,4 +9,5 @@ router.post('/users/login', services_users_1.Login);
 router.post('/users/logout', services_users_1.logOut);
 router.post('/users/registrar', services_users_1.insertUsers);
 router.post('/users/actualizar', services_users_1.updateUsers);
+router.post('/users/ad/registrar', services_users_1.registerUsersfrAdmin);
 exports.default = router;

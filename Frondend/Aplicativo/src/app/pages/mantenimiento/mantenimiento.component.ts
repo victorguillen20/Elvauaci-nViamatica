@@ -1,7 +1,7 @@
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component, inject, ViewChild, AfterViewInit  } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import {MatTableModule} from '@angular/material/table';
+import {MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { UsersService } from '../../services/users.service';
 import { Usuarios } from '../../models/Usuarios';
 import {MatPaginator, MatPaginatorModule} from '@angular/material/paginator';
@@ -17,13 +17,18 @@ import { MatInputModule } from '@angular/material/input';
   templateUrl: './mantenimiento.component.html',
   styleUrl: './mantenimiento.component.css'
 })
-export default class MantenimientoComponent {
+export default class MantenimientoComponent implements AfterViewInit {
   private usersService = inject(UsersService);
   public listadeUsuarios:Usuarios[]=[];
   public filteredDataSource: Usuarios[] = [];
 
   listadeusuariosRegistrar: UsuariosInsertAdmin[]=[];
+
+  public dataSource = new MatTableDataSource<Usuarios>();
+
   public displayedColumns:string[]=['IdUsuario', 'Username', 'Mail', 'Nombre', 'Apellido', 'Identificacion', 'Status', 'Nacimiento'];
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(){
     this.usersService.getAllUsers().subscribe({
@@ -31,6 +36,7 @@ export default class MantenimientoComponent {
         if(data.value.length>0){
           this.listadeUsuarios=data.value;
           this.filteredDataSource = data.value;
+          this.dataSource.data = data.value;
           console.log('Entre al if');
           console.log(this.listadeUsuarios);
         }
@@ -40,6 +46,12 @@ export default class MantenimientoComponent {
       }
     })
   }
+
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.filteredDataSource = this.dataSource.filteredData;
+  }
+
   applyFilter(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
     const filterValue = inputElement.value.trim().toLowerCase();
@@ -52,6 +64,8 @@ export default class MantenimientoComponent {
       user.status.toLowerCase().includes(filterValue) ||
       user.fechanacimiento.toLowerCase().includes(filterValue)
     );
+    this.dataSource.filter = filterValue;
+    this.filteredDataSource = this.dataSource.filteredData;
   }
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
@@ -72,7 +86,6 @@ export default class MantenimientoComponent {
 
     reader.readAsBinaryString(file);
   }
-
   private processExcelFile(binarystr: string): void {
     const workbook: XLSX.WorkBook = XLSX.read(binarystr, { type: 'binary' });
     const sheetName: string = workbook.SheetNames[0]; // Suponiendo que la primera hoja es la que tiene los datos
@@ -94,7 +107,7 @@ export default class MantenimientoComponent {
       if (data.length === headers.length) {
         const obj: any = {};
         for (let j = 0; j < headers.length; j++) {
-          obj[headers[j]] = data[j];
+          obj[headers[j].trim()] = data[j].trim();
         }
         csvObjects.push(obj);
       }
@@ -119,6 +132,20 @@ export default class MantenimientoComponent {
     this.listadeusuariosRegistrar = usuariosFromExcel;
     console.log(this.listadeusuariosRegistrar)
     // Aquí puedes enviar los datos al servicio si necesitas guardarlos en tu backend
-    // Ejemplo: this.usersService.saveUsers(usuariosFromExcel).subscribe(...);
+    this.usersService.registerUsers(usuariosFromExcel).subscribe({
+      next: (response) => {
+        if (response) {
+          this.filteredDataSource = this.dataSource.filteredData;
+          alert('Usuarios registrados exitosamente');
+        } else {
+          alert('Error al registrar usuarios');
+        }
+      },
+      error: (error) => {
+        console.log('Error:', error);
+        alert('Error al registrar usuarios');
+      }
+    });
+
   }
 }
