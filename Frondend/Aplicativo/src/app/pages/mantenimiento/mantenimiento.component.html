@@ -1,1 +1,66 @@
-<p>mantenimiento works!</p>
+<div class="card-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Lista de Usuarios</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <table mat-table [dataSource]="listadeUsuarios" class="mat-elevation-z8">
+
+        <!-- Definición de las columnas -->
+        <ng-container matColumnDef="IdUsuario">
+          <th mat-header-cell *matHeaderCellDef> idUsuario </th>
+          <td mat-cell *matCellDef="let element"> {{ element.idusuario }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="Username">
+          <th mat-header-cell *matHeaderCellDef> Username </th>
+          <td mat-cell *matCellDef="let element"> {{ element.username }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="Mail">
+          <th mat-header-cell *matHeaderCellDef> Mail </th>
+          <td mat-cell *matCellDef="let element"> {{ element.mail }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="Nombre">
+          <th mat-header-cell *matHeaderCellDef> Nombre </th>
+          <td mat-cell *matCellDef="let element"> {{ element.nombre }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="Apellido">
+          <th mat-header-cell *matHeaderCellDef> Apellido </th>
+          <td mat-cell *matCellDef="let element"> {{ element.apellido }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="Identificacion">
+          <th mat-header-cell *matHeaderCellDef> Identificación </th>
+          <td mat-cell *matCellDef="let element"> {{ element.identificacion }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="Status">
+          <th mat-header-cell *matHeaderCellDef> Status </th>
+          <td mat-cell *matCellDef="let element"> {{ element.status }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="Nacimiento">
+          <th mat-header-cell *matHeaderCellDef> Nacimiento </th>
+          <td mat-cell *matCellDef="let element"> {{ element.fechanacimiento | slice:0:10 }} </td>
+        </ng-container>
+
+
+        <!-- Definición de las filas y celdas -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Lista de Usuarios</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <!-- Agregar botón para cargar archivo -->
+      <input type="file" >
+    </mat-card-content>
+  </mat-card>
+</div>
