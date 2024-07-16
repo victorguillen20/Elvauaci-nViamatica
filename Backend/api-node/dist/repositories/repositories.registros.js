@@ -49,9 +49,9 @@ function registrarUsuarioEstandar(username, hashedPassword, correogenerado, nomb
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const client = yield database_conection_1.pool.connect();
-            const query = `select registrarentrada($1, $2)`;
+            const query = `select registrarUsuarioEstandar($1, $2, $3, $4, $5, $6, $7)`;
             const result = yield client.query(query, [username, hashedPassword, correogenerado, nombres, apellidos, identificacion, fechanacimiento]);
-            const existe = result.rows[0].registrarentrada;
+            const existe = result.rows[0].registrarusuarioestandar;
             client.release();
             return existe;
         }

@@ -24,9 +24,10 @@ function generarCorreoElectronico(nombres, apellidos) {
         const primerApellido = apellidoSeparado[0].toLowerCase();
         const primeraLetraSegundoApellido = (apellidoSeparado.length > 1) ? apellidoSeparado[1].charAt(0).toLowerCase() : '';
         let correoGenerado = `${primeraLetraNombre}${primerApellido}${primeraLetraSegundoApellido}@mail.com`;
-        const correoExiste = yield existeMailEnUsuarios(correoGenerado);
-        if (correoExiste) {
-            correoGenerado = `${primeraLetraNombre}${primerApellido}${primeraLetraSegundoApellido}1@mail.com`;
+        let contador = 1;
+        while (yield existeMailEnUsuarios(correoGenerado)) {
+            correoGenerado = `${primeraLetraNombre}${primerApellido}${primeraLetraSegundoApellido}${contador}@mail.com`;
+            contador++;
         }
         return correoGenerado;
     });
@@ -35,9 +36,9 @@ function existeMailEnUsuarios(mail) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const client = yield database_conection_1.pool.connect();
-            const query = `select existeMailEnUsuarios($1)`;
+            const query = `SELECT EXISTS (SELECT 1 FROM usuarios WHERE mail = $1)`;
             const result = yield client.query(query, [mail]);
-            const existe = result.rows[0].existeMailEnUsuarios;
+            const existe = result.rows[0].exists;
             client.release();
             return existe;
         }
@@ -71,7 +72,6 @@ function validarUsuario(username) {
         return 'true';
     });
 }
-// Función para verificar si el usuario ya existe en la base de datos
 function userExist(username) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -89,45 +89,34 @@ function userExist(username) {
     });
 }
 function validarPassword(password) {
-    // Validar longitud mínima
     if (password.length < 8) {
         return 'La contraseña debe tener al menos 8 caracteres.';
     }
-    // Validar al menos una letra mayúscula
     if (!/[A-Z]/.test(password)) {
         return 'La contraseña debe contener al menos una letra mayúscula.';
     }
-    // Validar que no contenga espacios
     if (/\s/.test(password)) {
         return 'La contraseña no debe contener espacios.';
     }
-    // Validar al menos un signo
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
         return 'La contraseña debe contener al menos un signo.';
     }
-    // Si pasa todas las validaciones, retornar true
     return 'true';
 }
 function validarIdentificacion(identificacion) {
-    // Validar longitud exacta de 10 dígitos
     if (identificacion.length !== 10) {
         return 'La identificación debe tener exactamente 10 dígitos.';
     }
-    // Validar que sean solo números
     if (!/^\d+$/.test(identificacion)) {
         return 'La identificación debe contener solo números.';
     }
-    // Validar que no haya 4 números seguidos iguales
     if (/(\d)\1{3}/.test(identificacion)) {
         return 'La identificación no puede tener 4 dígitos consecutivos iguales.';
     }
-    // Si pasa todas las validaciones, retornar true
     return 'true';
 }
 const validarParametro = (parametro) => {
-    // Expresión regular para validar correo electrónico
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    // Verificar si el parámetro coincide con el formato de correo electrónico
     if (emailRegex.test(parametro)) {
         return 'email';
     }
@@ -139,12 +128,11 @@ exports.validarParametro = validarParametro;
 function obtenerFechaHoraActual() {
     const fechaHoraActual = new Date();
     const year = fechaHoraActual.getFullYear();
-    const month = ('0' + (fechaHoraActual.getMonth() + 1)).slice(-2); // Los meses van de 0 a 11, por eso se suma 1 y se formatea con dos dígitos
-    const day = ('0' + fechaHoraActual.getDate()).slice(-2); // Formatea el día con dos dígitos
-    const hours = ('0' + fechaHoraActual.getHours()).slice(-2); // Formatea las horas con dos dígitos
-    const minutes = ('0' + fechaHoraActual.getMinutes()).slice(-2); // Formatea los minutos con dos dígitos
-    const seconds = ('0' + fechaHoraActual.getSeconds()).slice(-2); // Formatea los segundos con dos dígitos
-    // Formatea la fecha y hora en el formato 'YYYY-MM-DD HH:MI:SS'
+    const month = ('0' + (fechaHoraActual.getMonth() + 1)).slice(-2);
+    const day = ('0' + fechaHoraActual.getDate()).slice(-2);
+    const hours = ('0' + fechaHoraActual.getHours()).slice(-2);
+    const minutes = ('0' + fechaHoraActual.getMinutes()).slice(-2);
+    const seconds = ('0' + fechaHoraActual.getSeconds()).slice(-2);
     const formattedDateTime = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
     return formattedDateTime;
 }

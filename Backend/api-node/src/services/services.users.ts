@@ -4,12 +4,12 @@ import { QueryResult } from 'pg'
 import bcryptjs from 'bcrypt'
 
 import { existemailenusuarios, tomarPasswordHashed, tomarPasswordHashedporelMail, userExist } from '../repositories/repositories.users';
-import { verificarUsuarioBloqueado } from '../repositories/repositories.users.verificaciones';
+import { verificarExistenciaIdentificacion, verificarUsuarioBloqueado } from '../repositories/repositories.users.verificaciones';
 import { generarCorreoElectronico, obtenerFechaHoraActual, validarIdentificacion, validarParametro, validarPassword, validarUsuario } from '../utils/validaciones';
 import { obtenertodoslosUsuarios } from '../repositories/repositories.admin';
 import { obtenerDatosPersonaYUsuarioPorMail, obtenerDatosPersonaYUsuarioPorUsername, obteneridusuariopormail, obtenerIdUsuarioPorUsername, obtenerRolDeUsuario } from '../repositories/repositories.obtener.users';
 import { registrarentrada, registrarsalida, registrarUsuarioEstandar } from '../repositories/repositories.registros';
-import { actualizarIntentosSesion, actualizarUsuarios } from '../repositories/repositories.actualizar.users';
+import { actualizarIntentosSesion, actualizarUsuarios, resetearIntentos } from '../repositories/repositories.actualizar.users';
 
 export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
     try {        
@@ -42,10 +42,10 @@ export const getUsers = async (req: Request, res: Response): Promise<Response> =
 export const insertUsers = async (req: Request, res: Response): Promise<Response> => {
     const { username, password, nombres, apellidos, identificacion, fechanacimiento } = req.body;
     try {        
-        const correogeneradoPromise = generarCorreoElectronico(nombres, apellidos);
-        const correogenerado = await correogeneradoPromise;
-        console.log(correogenerado);
-                
+        const verificacion = await verificarExistenciaIdentificacion(identificacion);
+        if (verificacion) {
+            return res.status(500).json({ registrodeusuario: 'Ya existe una cuenta con estos datos'});
+        }
         const usuariovalidadoPromise = validarUsuario(username);
         const usuariovalidado = await usuariovalidadoPromise;
         if (usuariovalidado !== 'true') {
@@ -67,10 +67,14 @@ export const insertUsers = async (req: Request, res: Response): Promise<Response
                 
         const salt = await bcryptjs.genSalt(10);
         const hashedPassword = await bcryptjs.hash(password, salt);
+
+        const correogenerado = await generarCorreoElectronico(nombres, apellidos);
+        
+        console.log(correogenerado);
                 
         const response = await registrarUsuarioEstandar(
             username, hashedPassword,  correogenerado, nombres, apellidos, identificacion, fechanacimiento);
-        
+            console.log(correogenerado);
         if (response == false) {
             return  res.status(500).json({ message: 'Error al cargar los datos'});    
         }
@@ -148,7 +152,6 @@ export const Login = async (req: Request, res: Response): Promise<Response> => {
                     const idusuario = await obteneridusuariopormail(username);
                     
                     await registrarentrada(fechayhora, idusuario); 
-                    
                     const rolusuario = await obtenerRolDeUsuario(idusuario);                   
                     return res.status(200).json({login: true, rol: rolusuario, message: 'credenciales correctas'});
                 }
@@ -179,8 +182,7 @@ export const Login = async (req: Request, res: Response): Promise<Response> => {
             }
             
             const fechayhora = obtenerFechaHoraActual();
-            await registrarentrada(fechayhora, idusuario);
-            
+            await registrarentrada(fechayhora, idusuario);            
             const rolusuario = await obtenerRolDeUsuario(idusuario);            
             return res.status(201).json({ login: true, rol: rolusuario, message: 'Login exitoso' });
         } else {
@@ -200,11 +202,13 @@ export const logOut = async (req: Request, res: Response): Promise<Response> => 
             const idusuario = await obteneridusuariopormail(username);            
             const fechayhora = obtenerFechaHoraActual();
             await registrarsalida(fechayhora, idusuario);
+            await resetearIntentos(idusuario);
             return res.status(200).json({logout: true});   
             
         }         
         const idusuario = await obtenerIdUsuarioPorUsername(username);        
-        const fechayhora = obtenerFechaHoraActual();
+        const fechayhora = obtenerFechaHoraActual();        
+        await resetearIntentos(idusuario);
         await  registrarsalida(fechayhora, idusuario);
         return res.status(200).json({logout: true});       
         

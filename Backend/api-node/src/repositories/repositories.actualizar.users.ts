@@ -30,3 +30,16 @@ export async function actualizarUsuarios(
         throw error;
     }
 }
+
+export async function resetearIntentos(idusuario: string): Promise<void> {
+    try {
+        const client = await pool.connect();
+        const query = `select resetearIntentos($1)`;
+        const result: QueryResult<{ resetearintentos: boolean }> = await client.query(query, [idusuario]);        
+        client.release();        
+    } catch (error) {
+        console.error('Error al obtener el id del usuario:', error);
+        throw error;
+    }
+}
+

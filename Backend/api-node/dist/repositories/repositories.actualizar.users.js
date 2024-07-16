@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.actualizarIntentosSesion = actualizarIntentosSesion;
 exports.actualizarUsuarios = actualizarUsuarios;
+exports.resetearIntentos = resetearIntentos;
 const database_conection_1 = require("../database.conection");
 function actualizarIntentosSesion(idusuario) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -37,6 +38,20 @@ function actualizarUsuarios(idusuario, username, hashedPassword, nombres, apelli
             const existe = result.rows[0].actualizarusuarios;
             client.release();
             return existe;
+        }
+        catch (error) {
+            console.error('Error al obtener el id del usuario:', error);
+            throw error;
+        }
+    });
+}
+function resetearIntentos(idusuario) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const client = yield database_conection_1.pool.connect();
+            const query = `select resetearIntentos($1)`;
+            const result = yield client.query(query, [idusuario]);
+            client.release();
         }
         catch (error) {
             console.error('Error al obtener el id del usuario:', error);

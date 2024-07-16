@@ -52,9 +52,10 @@ exports.getUsers = getUsers;
 const insertUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, password, nombres, apellidos, identificacion, fechanacimiento } = req.body;
     try {
-        const correogeneradoPromise = (0, validaciones_1.generarCorreoElectronico)(nombres, apellidos);
-        const correogenerado = yield correogeneradoPromise;
-        console.log(correogenerado);
+        const verificacion = yield (0, repositories_users_verificaciones_1.verificarExistenciaIdentificacion)(identificacion);
+        if (verificacion) {
+            return res.status(500).json({ registrodeusuario: 'Ya existe una cuenta con estos datos' });
+        }
         const usuariovalidadoPromise = (0, validaciones_1.validarUsuario)(username);
         const usuariovalidado = yield usuariovalidadoPromise;
         if (usuariovalidado !== 'true') {
@@ -73,7 +74,10 @@ const insertUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         const salt = yield bcrypt_1.default.genSalt(10);
         const hashedPassword = yield bcrypt_1.default.hash(password, salt);
+        const correogenerado = yield (0, validaciones_1.generarCorreoElectronico)(nombres, apellidos);
+        console.log(correogenerado);
         const response = yield (0, repositories_registros_1.registrarUsuarioEstandar)(username, hashedPassword, correogenerado, nombres, apellidos, identificacion, fechanacimiento);
+        console.log(correogenerado);
         if (response == false) {
             return res.status(500).json({ message: 'Error al cargar los datos' });
         }
@@ -193,10 +197,12 @@ const logOut = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             const idusuario = yield (0, repositories_obtener_users_1.obteneridusuariopormail)(username);
             const fechayhora = (0, validaciones_1.obtenerFechaHoraActual)();
             yield (0, repositories_registros_1.registrarsalida)(fechayhora, idusuario);
+            yield (0, repositories_actualizar_users_1.resetearIntentos)(idusuario);
             return res.status(200).json({ logout: true });
         }
         const idusuario = yield (0, repositories_obtener_users_1.obtenerIdUsuarioPorUsername)(username);
         const fechayhora = (0, validaciones_1.obtenerFechaHoraActual)();
+        yield (0, repositories_actualizar_users_1.resetearIntentos)(idusuario);
         yield (0, repositories_registros_1.registrarsalida)(fechayhora, idusuario);
         return res.status(200).json({ logout: true });
     }
