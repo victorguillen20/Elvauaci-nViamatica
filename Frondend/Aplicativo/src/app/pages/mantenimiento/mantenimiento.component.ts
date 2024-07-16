@@ -1,23 +1,26 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import {MatTableModule} from '@angular/material/table';
 import { UsersService } from '../../services/users.service';
 import { Usuarios } from '../../models/Usuarios';
+import {MatPaginator, MatPaginatorModule} from '@angular/material/paginator';
 
 import * as XLSX from 'xlsx';
 import { UsuariosInsertAdmin } from '../../models/UsuariosInsertAdmin';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector: 'app-mantenimiento',
   standalone: true,
-  imports: [MatCardModule, MatTableModule, CommonModule, DatePipe],
+  imports: [MatCardModule, MatTableModule, CommonModule, DatePipe, MatPaginatorModule, MatInputModule],
   templateUrl: './mantenimiento.component.html',
   styleUrl: './mantenimiento.component.css'
 })
 export default class MantenimientoComponent {
   private usersService = inject(UsersService);
   public listadeUsuarios:Usuarios[]=[];
+  public filteredDataSource: Usuarios[] = [];
 
   listadeusuariosRegistrar: UsuariosInsertAdmin[]=[];
   public displayedColumns:string[]=['IdUsuario', 'Username', 'Mail', 'Nombre', 'Apellido', 'Identificacion', 'Status', 'Nacimiento'];
@@ -27,6 +30,7 @@ export default class MantenimientoComponent {
       next:(data)=> {
         if(data.value.length>0){
           this.listadeUsuarios=data.value;
+          this.filteredDataSource = data.value;
           console.log('Entre al if');
           console.log(this.listadeUsuarios);
         }
@@ -35,6 +39,19 @@ export default class MantenimientoComponent {
         console.log(error.message);
       }
     })
+  }
+  applyFilter(event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    const filterValue = inputElement.value.trim().toLowerCase();
+    this.filteredDataSource = this.listadeUsuarios.filter(user =>
+      user.username.toLowerCase().includes(filterValue) ||
+      user.mail.toLowerCase().includes(filterValue) ||
+      user.nombre.toLowerCase().includes(filterValue) ||
+      user.apellido.toLowerCase().includes(filterValue) ||
+      user.identificacion.toLowerCase().includes(filterValue) ||
+      user.status.toLowerCase().includes(filterValue) ||
+      user.fechanacimiento.toLowerCase().includes(filterValue)
+    );
   }
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
@@ -100,7 +117,7 @@ export default class MantenimientoComponent {
 
     // Guardar los usuarios en tu lista o enviarlos al servicio para almacenarlos
     this.listadeusuariosRegistrar = usuariosFromExcel;
-
+    console.log(this.listadeusuariosRegistrar)
     // Aquí puedes enviar los datos al servicio si necesitas guardarlos en tu backend
     // Ejemplo: this.usersService.saveUsers(usuariosFromExcel).subscribe(...);
   }
